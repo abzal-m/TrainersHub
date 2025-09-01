@@ -6,7 +6,7 @@ using TrainersHub.Models;
 namespace TrainersHub.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class StravaActivityController : Controller
 {
     private readonly ILogger<StravaActivityController> _logger;
