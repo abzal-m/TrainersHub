@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using TrainersHub.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,11 +65,3 @@ app.MapControllers();
 
 app.Run();
 
-// DTO для конфигурации JWT
-public class JwtOptions
-{
-    public string Key { get; set; } = string.Empty;
-    public string Issuer { get; set; } = string.Empty;
-    public string Audience { get; set; } = string.Empty;
-    public int ExpireMinutes { get; set; }
-}

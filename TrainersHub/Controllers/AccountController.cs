@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Options;
 using TrainersHub.Models;
 
 namespace JwtAuthExample.Controllers;
@@ -13,11 +13,13 @@ namespace JwtAuthExample.Controllers;
 [Route("api/[controller]")]
 public class AccountController : ControllerBase
 {
-    // Мок-пользователи
     private static List<User> _users = new()
     {
         new User("admin", "12345", "Admin")
     };
+
+    // Хранилище refresh токенов (пока в памяти)
+    private static Dictionary<string, string> _refreshTokens = new();
 
     private readonly JwtOptions _jwtOptions;
 
@@ -26,20 +28,18 @@ public class AccountController : ControllerBase
         _jwtOptions = jwtOptions.Value;
     }
 
-    // ===== Регистрация =====
+    // ====== Регистрация ======
     [HttpPost("register")]
     public IActionResult Register([FromBody] RegisterRequest request)
     {
         if (_users.Any(u => u.Username == request.Username))
             return BadRequest(new { message = "Пользователь уже существует" });
 
-        var newUser = new User(request.Username, request.Password, "Athlete");
-        _users.Add(newUser);
-
+        _users.Add(new User(request.Username, request.Password, "Athlete"));
         return Ok(new { message = "Регистрация успешна" });
     }
 
-    // ===== Логин =====
+    // ====== Логин ======
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request)
     {
@@ -49,6 +49,60 @@ public class AccountController : ControllerBase
         if (user is null)
             return Unauthorized();
 
+        var accessToken = GenerateAccessToken(user);
+        var refreshToken = GenerateRefreshToken();
+
+        // Сохраняем refreshToken -> username
+        _refreshTokens[refreshToken] = user.Username;
+
+        return Ok(new
+        {
+            accessToken,
+            refreshToken
+        });
+    }
+
+    // ====== Обновление токена ======
+    [HttpPost("refresh")]
+    public IActionResult Refresh([FromBody] RefreshRequest request)
+    {
+        if (!_refreshTokens.TryGetValue(request.RefreshToken, out var username))
+            return Unauthorized(new { message = "Неверный refresh token" });
+
+        var user = _users.FirstOrDefault(u => u.Username == username);
+        if (user is null)
+            return Unauthorized();
+
+        var newAccessToken = GenerateAccessToken(user);
+        var newRefreshToken = GenerateRefreshToken();
+
+        // Заменяем refresh token
+        _refreshTokens.Remove(request.RefreshToken);
+        _refreshTokens[newRefreshToken] = username;
+
+        return Ok(new
+        {
+            accessToken = newAccessToken,
+            refreshToken = newRefreshToken
+        });
+    }
+
+    // ====== Защищённый эндпоинт ======
+    [Authorize]
+    [HttpGet("secure")]
+    public IActionResult Secure()
+    {
+        return Ok(new
+        {
+            Message = "Добро пожаловать!",
+            User = User.Identity?.Name,
+            Role = User.FindFirst(ClaimTypes.Role)?.Value
+        });
+    }
+
+    // ====== Методы ======
+    private string GenerateAccessToken(User user)
+    {
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, user.Username),
@@ -62,27 +116,14 @@ public class AccountController : ControllerBase
             issuer: _jwtOptions.Issuer,
             audience: _jwtOptions.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtOptions.ExpireMinutes),
+            expires: DateTime.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpireMinutes),
             signingCredentials: creds);
 
-        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-
-        return Ok(new { token = jwt });
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    // ===== Защищенный эндпоинт =====
-    [Authorize]
-    [HttpGet("secure")]
-    public IActionResult Secure()
+    private string GenerateRefreshToken()
     {
-        var username = User.Identity?.Name;
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
-
-        return Ok(new
-        {
-            Message = "Добро пожаловать!",
-            User = username,
-            Role = role
-        });
+        return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
     }
 }
