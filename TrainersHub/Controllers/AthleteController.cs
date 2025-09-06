@@ -47,9 +47,14 @@ public class AthleteController : ControllerBase
         return Ok(new { result.Id, result.Title });
     }
 
-    [HttpGet("MyResults/{athleteId}")]
-    public async Task<IActionResult> GetMyResults(int athleteId)
+    [HttpGet("MyResults")]
+    public async Task<IActionResult> GetMyResults()
     {
+        var athleteIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (athleteIdClaim == null) return Unauthorized();
+
+        int athleteId = int.Parse(athleteIdClaim);
+        
         var results = await _context.TrainingResults
             .Where(r => r.AthleteId == athleteId)
             .ToListAsync();
