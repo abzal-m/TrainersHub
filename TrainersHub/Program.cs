@@ -1,5 +1,7 @@
 using System.Text;
+using JwtAuthExample.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TrainersHub.Models;
 
@@ -8,9 +10,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+// Подключаем PostgreSQL
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 // ===== JWT настройки =====
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
+
 var jwtOptions = jwtSection.Get<JwtOptions>();
 var keyBytes = Encoding.UTF8.GetBytes(jwtOptions.Key);
 
