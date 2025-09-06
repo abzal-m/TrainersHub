@@ -52,7 +52,22 @@ public class TrainerController : ControllerBase
     {
         var trainings = await _context.Trainings
             .Include(t => t.Segments)
+            .Include(t => t.Trainer)
             .Where(t => t.AthleteId == athleteId)
+            .Select(t => new TrainingViewDto
+            {
+                TrainingId = t.Id,
+                Title = t.Title,
+                TrainerName = t.Trainer.Username,
+                Segments = t.Segments.Select(s => new TrainingSegmentDto
+                {
+                    Order = s.Id,
+                    TargetHeartRate = s.TargetHeartRate,
+                    TargetCadence = s.TargetCadence,
+                    DistanceKm = s.DistanceKm,
+                    DurationMinutes = s.DurationMinutes
+                }).ToList()
+            })
             .ToListAsync();
 
         return Ok(trainings);
