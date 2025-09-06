@@ -20,13 +20,19 @@ public class AthleteController : ControllerBase
     [HttpPost("UploadResult")]
     public async Task<IActionResult> UploadResult([FromBody] TrainingResultDto dto)
     {
+        
+        var athleteIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (athleteIdClaim == null) return Unauthorized();
+
+        int athleteId = int.Parse(athleteIdClaim);
+        
         var training = await _context.Trainings.FindAsync(dto.TrainingId);
         if (training == null) return NotFound("Training not found");
 
         var result = new TrainingResult
         {
             TrainingId = dto.TrainingId,
-            AthleteId = dto.AthleteId,
+            AthleteId = athleteId,
             Title = dto.Title,
             DurationMinutes = dto.DurationMinutes,
             ElevationGain = dto.ElevationGain,
