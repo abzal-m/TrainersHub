@@ -1,15 +1,18 @@
-﻿using JwtAuthExample.Data;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using JwtAuthExample.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using TrainersHub.Models;
+using TrainersHub.Models.Auth;
 
-namespace JwtAuthExample.Controllers;
+namespace TrainersHub.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -17,10 +20,12 @@ public class AccountController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly JwtOptions _jwtOptions;
+    private readonly IPasswordHasher<User> _passwordHasher;
 
-    public AccountController(AppDbContext db, IOptions<JwtOptions> jwtOptions)
+    public AccountController(AppDbContext db, IOptions<JwtOptions> jwtOptions, IPasswordHasher<User> passwordHasher)
     {
         _db = db;
+        _passwordHasher = passwordHasher;
         _jwtOptions = jwtOptions.Value;
     }
 
@@ -31,29 +36,39 @@ public class AccountController : ControllerBase
         if (await _db.Users.AnyAsync(u => u.Username == request.Username))
             return BadRequest(new { message = "Пользователь уже существует" });
 
+        var allowedRoles = new[] { "Trainer", "Athlete", "Admin" };
+        if (!allowedRoles.Contains(request.Role))
+            return BadRequest("Invalid role. Allowed: Trainer, Athlete, Admin");
+        
+        using var hmac = new HMACSHA256();
         var user = new User
         {
             Username = request.Username,
-            Password = request.Password, // ⚠️ обязательно хэшируй
-            Role = "Athlete"
+            Role = request.Role
         };
 
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        return Ok(new { message = "Регистрация успешна" });
+        return Ok(new { user.Id, user.Username, user.Role });
     }
 
     // ====== Логин ======
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u =>
-            u.Username == request.Username && u.Password == request.Password);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
 
         if (user == null)
             return Unauthorized();
+        
+        
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
 
+        if (result == PasswordVerificationResult.Failed)
+            return Unauthorized("Invalid username or password");
+        
         var accessToken = GenerateAccessToken(user);
         var refreshToken = GenerateRefreshToken();
 
@@ -109,7 +124,8 @@ public class AccountController : ControllerBase
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Role, user.Role),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Key));

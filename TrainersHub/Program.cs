@@ -1,6 +1,7 @@
 using System.Text;
 using JwtAuthExample.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using TrainersHub.Models;
@@ -15,12 +16,16 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Регистрируем PasswordHasher
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+
 // ===== JWT настройки =====
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
 
 var jwtOptions = jwtSection.Get<JwtOptions>();
 var keyBytes = Encoding.UTF8.GetBytes(jwtOptions.Key);
+
 
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -54,6 +59,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
