@@ -55,9 +55,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(
+                "http://localhost:8080", 
+                "https://trainershub.onrender.com")
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 var app = builder.Build();
@@ -75,7 +78,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("AllowAll");
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 
 

@@ -22,38 +22,31 @@ public class StravaActivityController : Controller
         _logger = logger;
     }
     
-    [HttpGet(Name = "GetLastActivity")]
-    public async Task<List<ActivityModel>?> Get()
+    [HttpGet("GetLastActivity")]
+    public async Task<ActionResult<List<ActivityModel>>> Get()
     {
-        string accessToken;
-        string refreshToken;
-
-        if (!System.IO.File.Exists(tokenFile))
+        try
         {
-            Console.WriteLine("Введите auth_code из URL после авторизации:");
-            string authCode = Console.ReadLine();
+            var (accessToken, refreshToken) = LoadTokens();
 
-            var tokens = await ExchangeCodeForToken(authCode);
-            accessToken = tokens.accessToken;
-            refreshToken = tokens.refreshToken;
-            SaveTokens(accessToken, refreshToken);
-        }
-        else
-        {
-            var tokens = LoadTokens();
-            accessToken = tokens.accessToken;
-            refreshToken = tokens.refreshToken;
+            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
+                return Unauthorized("No saved Strava tokens. Please authenticate first.");
 
             // Пробуем обновить токен
             accessToken = await RefreshAccessToken(refreshToken);
             SaveTokens(accessToken, refreshToken);
-        }
 
-        // Получаем последнюю тренировку
-        return await GetLastActivity(accessToken);
+            var activities = await GetLastActivity(accessToken);
+            return Ok(activities);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while fetching Strava activities");
+            return StatusCode(500, "Internal Server Error");
+        }
     }
-    
-    static async Task<(string accessToken, string refreshToken)> ExchangeCodeForToken(string authCode)
+
+    private async Task<(string accessToken, string refreshToken)> ExchangeCodeForToken(string authCode)
     {
         using var client = new HttpClient();
         var data = new FormUrlEncodedContent(new[]
@@ -67,13 +60,10 @@ public class StravaActivityController : Controller
         var response = await client.PostAsync("https://www.strava.com/oauth/token", data);
         var json = JObject.Parse(await response.Content.ReadAsStringAsync());
 
-        Console.WriteLine("\n=== TOKEN RESPONSE ===");
-        Console.WriteLine(json);
-
-        return (json["access_token"]?.ToString(), json["refresh_token"]?.ToString());
+        return (json["access_token"]?.ToString()!, json["refresh_token"]?.ToString()!);
     }
 
-    static async Task<string> RefreshAccessToken(string refreshToken)
+    private async Task<string> RefreshAccessToken(string refreshToken)
     {
         using var client = new HttpClient();
         var data = new FormUrlEncodedContent(new[]
@@ -87,13 +77,10 @@ public class StravaActivityController : Controller
         var response = await client.PostAsync("https://www.strava.com/oauth/token", data);
         var json = JObject.Parse(await response.Content.ReadAsStringAsync());
 
-        Console.WriteLine("\n=== REFRESH TOKEN RESPONSE ===");
-        Console.WriteLine(json);
-
-        return json["access_token"]?.ToString();
+        return json["access_token"]?.ToString()!;
     }
 
-    static void SaveTokens(string accessToken, string refreshToken)
+    private void SaveTokens(string accessToken, string refreshToken)
     {
         var json = new JObject
         {
@@ -103,23 +90,24 @@ public class StravaActivityController : Controller
         System.IO.File.WriteAllText(tokenFile, json.ToString());
     }
 
-    static (string accessToken, string refreshToken) LoadTokens()
+    private (string accessToken, string refreshToken) LoadTokens()
     {
+        if (!System.IO.File.Exists(tokenFile))
+            return (string.Empty, string.Empty);
+
         var json = JObject.Parse(System.IO.File.ReadAllText(tokenFile));
-        return (json["access_token"].ToString(), json["refresh_token"].ToString());
+        return (json["access_token"]?.ToString() ?? "", json["refresh_token"]?.ToString() ?? "");
     }
 
-    static async Task<List<ActivityModel>?> GetLastActivity(string token)
+    private async Task<List<ActivityModel>?> GetLastActivity(string token)
     {
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
 
         var response = await client.GetAsync("https://www.strava.com/api/v3/athlete/activities?per_page=10&page=1");
-        var json = await response.Content.ReadAsStringAsync();
-        var parsedData = JsonSerializer.Deserialize<List<ActivityModel>>(json);
-        return parsedData;
+        response.EnsureSuccessStatusCode();
 
-        Console.WriteLine("\n=== LAST ACTIVITY ===");
-        Console.WriteLine(JsonSerializer.Serialize(parsedData));
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<List<ActivityModel>>(json);
     }
 }
