@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TrainersHub.Models;
 using TrainersHub.Models.Auth;
+using TrainersHub.Models.Strava;
 
 namespace JwtAuthExample.Data;
 
@@ -13,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<TrainingSegment> TrainingSegments { get; set; }
     public DbSet<TrainingResult> TrainingResults { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<StravaToken> StravaTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

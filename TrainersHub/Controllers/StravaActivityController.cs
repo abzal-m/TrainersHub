@@ -1,7 +1,10 @@
 ﻿using System.Text.Json;
+using JwtAuthExample.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using TrainersHub.Models;
+using TrainersHub.Models.Strava;
 
 namespace TrainersHub.Controllers;
 
@@ -10,6 +13,7 @@ namespace TrainersHub.Controllers;
 public class StravaActivityController : Controller
 {
     private readonly ILogger<StravaActivityController> _logger;
+    private readonly AppDbContext _context;
     private static readonly string clientId = "174332";
     private static readonly string clientSecret = "245208f5c5e460e8db3d02495583b507293d6c6e";
     private static readonly string redirectUri = "http://localhost/exchange_token";
@@ -17,9 +21,43 @@ public class StravaActivityController : Controller
 //26d2792f52da1dcce49a5bfcd0b2790c0f7adf13
 //https://www.strava.com/oauth/authorize?client_id=174332&response_type=code&redirect_uri=http://localhost/exchange_token&approval_prompt=force&scope=read,activity:read_all
 
-    public StravaActivityController(ILogger<StravaActivityController> logger)
+    public StravaActivityController(ILogger<StravaActivityController> logger, AppDbContext context)
     {
         _logger = logger;
+        _context = context;
+    }
+    
+    /// <summary>
+    /// Авторизация Strava: сохраняет токены в Postgres
+    /// </summary>
+    [HttpPost("Authorize")]
+    public async Task<IActionResult> Authorize([FromQuery] string code)
+    {
+        if (string.IsNullOrEmpty(code))
+            return BadRequest("Auth code is required");
+
+        try
+        {
+            var (accessToken, refreshToken) = await ExchangeCodeForToken(code);
+
+            var tokenEntity = new StravaToken
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.StravaTokens.Add(tokenEntity);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Strava tokens saved", tokenEntity.Id });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during Strava authorization");
+            return StatusCode(500, "Internal Server Error");
+        }
     }
     
     [HttpGet("GetLastActivity")]
@@ -27,14 +65,16 @@ public class StravaActivityController : Controller
     {
         try
         {
-            var (accessToken, refreshToken) = LoadTokens();
+            var tokens = await LoadTokens();
 
-            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
+            if (tokens == null)
                 return Unauthorized("No saved Strava tokens. Please authenticate first.");
 
-            // Пробуем обновить токен
-            accessToken = await RefreshAccessToken(refreshToken);
-            SaveTokens(accessToken, refreshToken);
+            // обновляем токен
+            var accessToken = await RefreshAccessToken(tokens.RefreshToken);
+            tokens.AccessToken = accessToken;
+            tokens.UpdatedAt = DateTime.UtcNow;
+            await SaveTokens(tokens);
 
             var activities = await GetLastActivity(accessToken);
             return Ok(activities);
@@ -90,13 +130,19 @@ public class StravaActivityController : Controller
         System.IO.File.WriteAllText(tokenFile, json.ToString());
     }
 
-    private (string accessToken, string refreshToken) LoadTokens()
+    private async Task SaveTokens(StravaToken tokens)
     {
-        if (!System.IO.File.Exists(tokenFile))
-            return (string.Empty, string.Empty);
+        if (tokens.Id == 0)
+            _context.StravaTokens.Add(tokens);
+        else
+            _context.StravaTokens.Update(tokens);
 
-        var json = JObject.Parse(System.IO.File.ReadAllText(tokenFile));
-        return (json["access_token"]?.ToString() ?? "", json["refresh_token"]?.ToString() ?? "");
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task<StravaToken?> LoadTokens()
+    {
+        return await _context.StravaTokens.OrderByDescending(t => t.UpdatedAt).FirstOrDefaultAsync();
     }
 
     private async Task<List<ActivityModel>?> GetLastActivity(string token)
