@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using TrainersHub.Middleware;
 using TrainersHub.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +65,7 @@ builder.Services.AddCors(options =>
     });
 });
 var app = builder.Build();
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -76,10 +78,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseSwagger();
 app.UseSwaggerUI();
-app.UseCors("AllowAll");
+
 
 // app.UseHttpsRedirection();
+// Подключаем JWT
+app.UseJwtMiddleware();
 
+// Авторизация по ролям (пример)
+app.MapControllers();
 
 
 app.MapControllers();
