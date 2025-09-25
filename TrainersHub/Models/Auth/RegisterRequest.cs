@@ -1,4 +1,4 @@
 ﻿namespace TrainersHub.Models.Auth;
 
-public record RegisterRequest(string Username, string Password, string Role);
+public record RegisterRequest(string Username, string Password, string Role, string Email);
 

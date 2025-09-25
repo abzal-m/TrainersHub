@@ -44,6 +44,7 @@ public class AccountController : ControllerBase
         {
             Username = request.Username,
             Role = request.Role,
+            Email = request.Email,
             PasswordHash = _passwordHasher.HashPassword(null!, request.Password)
         };
 
