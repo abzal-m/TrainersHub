@@ -54,7 +54,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("Cors", policy =>
     {
         policy.WithOrigins(
                 "http://localhost:8080", 
@@ -65,7 +65,7 @@ builder.Services.AddCors(options =>
     });
 });
 var app = builder.Build();
-app.UseCors("AllowAll");
+app.UseCors("Cors");
 app.UseAuthentication();
 app.UseAuthorization();
 

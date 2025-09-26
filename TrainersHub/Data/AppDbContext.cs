@@ -20,14 +20,20 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<User>().HasKey(u => u.Id);
-        modelBuilder.Entity<RefreshToken>().HasKey(r => r.Id);
-        
+        // ===== Users =====
         modelBuilder.Entity<User>()
-            .HasMany<RefreshToken>()
+            .HasKey(u => u.Id);
+
+        // ===== RefreshTokens =====
+        modelBuilder.Entity<RefreshToken>()
+            .HasKey(r => r.Id);
+
+        modelBuilder.Entity<User>()
+            .HasMany(u => u.RefreshTokens)
             .WithOne(r => r.User)
-            .HasForeignKey(r => r.UserId);
-        
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // ===== Trainings =====
         modelBuilder.Entity<Training>(entity =>
         {
@@ -35,14 +41,24 @@ public class AppDbContext : DbContext
             entity.Property(t => t.Title).IsRequired().HasMaxLength(200);
 
             entity.HasOne(t => t.Trainer)
-                .WithMany()
+                .WithMany(u => u.TrainingsAsTrainer)
                 .HasForeignKey(t => t.TrainerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(t => t.Athlete)
-                .WithMany()
+                .WithMany(u => u.TrainingsAsAthlete)
                 .HasForeignKey(t => t.AthleteId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+
+        // ===== StravaTokens =====
+        modelBuilder.Entity<StravaToken>()
+            .HasKey(s => s.Id);
+
+        modelBuilder.Entity<StravaToken>()
+            .HasOne(s => s.User)
+            .WithMany(u => u.StravaTokens)
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

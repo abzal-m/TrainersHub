@@ -165,6 +165,7 @@ public class AccountController : ControllerBase
     {
         var claims = new[]
         {
+            new Claim("id", user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
             new Claim(ClaimTypes.Role, user.Role),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
