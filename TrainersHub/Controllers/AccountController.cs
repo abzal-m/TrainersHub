@@ -149,15 +149,15 @@ public class AccountController : ControllerBase
 
     // ====== Защищённый эндпоинт ======
     [Authorize]
-    [HttpGet("secure")]
-    public IActionResult Secure()
+    [HttpGet("isAuthenticated")]
+    public IActionResult IsAuthenticated()
     {
-        return Ok(new
+        var user = User.Identity?.IsAuthenticated;
+        if (user.HasValue && user.Value)
         {
-            Message = "Добро пожаловать!",
-            User = User.Identity?.Name,
-            Role = User.FindFirst(ClaimTypes.Role)?.Value
-        });
+            return Ok();
+        }
+        return Unauthorized();
     }
 
     // ====== Методы ======

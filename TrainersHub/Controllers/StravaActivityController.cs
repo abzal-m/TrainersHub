@@ -170,7 +170,7 @@ public class StravaActivityController : Controller
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
 
-        var response = await client.GetAsync("https://www.strava.com/api/v3/athlete/activities?per_page=10&page=1");
+        var response = await client.GetAsync("https://www.strava.com/api/v3/athlete/activities?per_page=20&page=1");
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync();

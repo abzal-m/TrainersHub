@@ -27,4 +27,7 @@ public class ActivityModel
     
     [JsonPropertyName("max_heartrate")]
     public double MaxHeartrate { get; set; }
+    
+    [JsonPropertyName("start_date_local")]
+    public DateTime StartDate { get; set; }
 }
