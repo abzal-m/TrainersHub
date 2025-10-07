@@ -9,29 +9,24 @@ using TrainersHub.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
+// Add services
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.WriteIndented = true;
 });
 
-// Подключаем PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Регистрируем PasswordHasher
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
-// ===== JWT настройки =====
+// JWT config
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
 
 var jwtOptions = jwtSection.Get<JwtOptions>();
 var keyBytes = Encoding.UTF8.GetBytes(jwtOptions.Key);
-
-
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -56,39 +51,35 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Cors", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:8080", 
-                "https://trainershub.onrender.com")
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+        policy.WithOrigins("http://localhost:8080", "https://trainershub.onrender.com")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
-var app = builder.Build();
-app.UseCors("Cors");
-app.UseAuthentication();
-app.UseAuthorization();
 
-// Configure the HTTP request pipeline.
+var app = builder.Build();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseCors("Cors");
 
+app.UseAuthentication();
+app.UseAuthorization();
 
-// app.UseHttpsRedirection();
-// Подключаем JWT
-app.UseJwtMiddleware();
+// ✅ UseWhen должен быть до MapControllers
+app.UseWhen(context =>
+    !context.Request.Path.StartsWithSegments("/api/trainer/CreateTraining"),
+    appBuilder =>
+    {
+        appBuilder.UseJwtMiddleware();
+    });
 
-// Авторизация по ролям (пример)
-app.MapControllers();
-
-
+// ✅ Только один вызов MapControllers()
 app.MapControllers();
 
 app.Run();
-

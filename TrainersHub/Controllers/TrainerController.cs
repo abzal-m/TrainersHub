@@ -16,6 +16,7 @@ public class TrainerController : ControllerBase
         _context = context;
     }
 
+    [AllowAnonymous]
     [HttpPost("CreateTraining")]
     public async Task<IActionResult> CreateTraining([FromBody] CreateTrainingDto dto)
     {
@@ -46,7 +47,8 @@ public class TrainerController : ControllerBase
 
         return Ok(new { training.Id, training.Title });
     }
-
+    
+    [AllowAnonymous]
     [HttpGet("AthleteTrainings/{athleteId}")]
     public async Task<IActionResult> GetTrainingsForAthlete(int athleteId)
     {
