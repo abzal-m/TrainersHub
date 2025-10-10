@@ -32,6 +32,8 @@ public class TrainerController : ControllerBase
             AthleteId = dto.AthleteId,
             Title = dto.Title,
             CreatedAt = DateTime.UtcNow,
+            Description = dto.Description,
+            TrainingDay = dto.TrainingDay,
             Segments = dto.Segments.Select(s => new TrainingSegment
             {
                 Order = s.Order,
@@ -61,6 +63,8 @@ public class TrainerController : ControllerBase
                 TrainingId = t.Id,
                 Title = t.Title,
                 TrainerName = t.Trainer.Username,
+                Description = t.Description,
+                TrainingDay = t.TrainingDay,
                 Segments = t.Segments.Select(s => new TrainingSegmentDto
                 {
                     Order = s.Id,

@@ -79,6 +79,8 @@ public class AthleteController : ControllerBase
                 TrainingId = t.Id,
                 Title = t.Title,
                 TrainerName = t.Trainer.Username,
+                TrainingDay = t.TrainingDay,
+                Description = t.Description,
                 Segments = t.Segments.Select(s => new TrainingSegmentDto
                 {
                     Order = s.Id,

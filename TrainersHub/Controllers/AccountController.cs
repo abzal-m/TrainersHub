@@ -155,7 +155,7 @@ public class AccountController : ControllerBase
         var user = User.Identity?.IsAuthenticated;
         if (user.HasValue && user.Value)
         {
-            return Ok();
+            return Ok(new {Name= User.Identity?.Name});
         }
         return Unauthorized();
     }
