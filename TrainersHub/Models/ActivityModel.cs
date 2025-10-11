@@ -4,6 +4,9 @@ namespace TrainersHub.Models;
 
 public class ActivityModel
 {
+    [JsonPropertyName("athlete")]
+    public Athlete Athlete { get; set; }
+    
     [JsonPropertyName("sport_type")]
     public string SportType { get; set; }
     
@@ -30,4 +33,10 @@ public class ActivityModel
     
     [JsonPropertyName("start_date_local")]
     public DateTime StartDate { get; set; }
+}
+
+public class Athlete
+{
+    [JsonPropertyName("id")]
+    public long Id { get; set; }
 }

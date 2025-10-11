@@ -114,6 +114,35 @@ public class StravaActivityController : Controller
         var hasToken = await _context.StravaTokens.AnyAsync(x => x.UserId == userId);
         return Ok(new { isConnected = hasToken });
     }
+    
+    [HttpGet("GetStravaStats")]
+    public async Task<IActionResult> GetStravaStats([FromQuery] string stravaId)
+    {
+        try
+        {
+            var userId = int.Parse(User.FindFirst("id")!.Value);
+
+            var tokens = await _context.StravaTokens
+                .FirstOrDefaultAsync(t => t.UserId == userId);
+
+            if (tokens == null)
+                return Unauthorized("No Strava tokens for this user. Please authenticate first.");
+
+            // обновляем токен
+            var accessToken = await RefreshAccessToken(tokens.RefreshToken);
+            tokens.AccessToken = accessToken;
+            tokens.UpdatedAt = DateTime.UtcNow;
+            await SaveTokens(tokens);
+
+            var activities = await GetStats(accessToken, stravaId);
+            return Ok(activities);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while fetching Strava activities");
+            return StatusCode(500, "Internal Server Error");
+        }
+    }
 
     private async Task<(string accessToken, string refreshToken)> ExchangeCodeForToken(string authCode)
     {
@@ -159,12 +188,7 @@ public class StravaActivityController : Controller
 
         await _context.SaveChangesAsync();
     }
-
-    private async Task<StravaToken?> LoadTokens()
-    {
-        return await _context.StravaTokens.OrderByDescending(t => t.UpdatedAt).FirstOrDefaultAsync();
-    }
-
+    
     private async Task<List<ActivityModel>?> GetLastActivity(string token)
     {
         using var client = new HttpClient();
@@ -175,5 +199,18 @@ public class StravaActivityController : Controller
 
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<ActivityModel>>(json);
+    }
+    
+    private async Task<StravaStatsModel> GetStats(string token, string id)
+    {
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+
+        var response = await client.GetAsync($"https://www.strava.com/api/v3/athletes/{id}/stats");
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        var stravaStatsModel = StravaStatsModel.FromJson(json);
+        return stravaStatsModel;
     }
 }
