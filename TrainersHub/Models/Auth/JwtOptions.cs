@@ -1,4 +1,4 @@
-﻿namespace TrainersHub.Models;
+﻿namespace TrainersHub.Models.Auth;
 
 public class JwtOptions
 {

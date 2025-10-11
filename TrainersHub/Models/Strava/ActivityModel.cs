@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace TrainersHub.Models;
+namespace TrainersHub.Models.Strava;
 
 public class ActivityModel
 {

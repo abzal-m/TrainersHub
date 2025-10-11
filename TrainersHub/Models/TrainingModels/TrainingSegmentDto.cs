@@ -12,7 +12,6 @@ public class TrainingViewDto
 {
     public int TrainingId { get; set; }
     public string Title { get; set; } = string.Empty;
-
     public string Description { get; set; } = string.Empty;
     public DateTime TrainingDay { get; set; } = DateTime.Today;
     public string TrainerName { get; set; } = string.Empty;
