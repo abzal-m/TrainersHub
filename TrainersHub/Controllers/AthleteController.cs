@@ -70,11 +70,10 @@ public class AthleteController : ControllerBase
 
         int athleteId = int.Parse(athleteIdClaim);
 
-        var trainings = await _context.Trainings
+        var trainings = _context.Trainings
             .Include(t => t.Trainer)
             .Include(t => t.Segments)
-            .Where(t => t.AthleteId == athleteId)
-            .Select(t => new TrainingViewDto
+            .Where(t => t.AthleteId == athleteId).Select(t => new TrainingViewDto
             {
                 TrainingId = t.Id,
                 Title = t.Title,
@@ -90,9 +89,19 @@ public class AthleteController : ControllerBase
                     DurationMinutes = s.DurationMinutes
                 }).ToList()
             })
-            .ToListAsync();
+            .ToList();
+        
+        if (trainings.Count == 0)
+        {
+            return new EmptyResult();
+        }
 
-        return Ok(trainings);
+        var response = new TrainingResponseModel();
+        response.TodayTraining = trainings.FirstOrDefault(x => x.TrainingDay.Date == DateTime.Now.Date) ?? new TrainingViewDto();
+        response.FutureTraining = trainings.Where(x => x.TrainingDay.Date > DateTime.Now.Date);
+        
+
+        return Ok(new { response.TodayTraining, response.FutureTraining});
     }
     
 }
