@@ -106,8 +106,8 @@ public class StravaActivityController : Controller
         }
     }
 
-    [HttpGet("IsConnected")]
-    public async Task<IActionResult> IsConnected()
+    [HttpGet("IsConnectedToStrave")]
+    public async Task<IActionResult> IsConnectedToStrave()
     {
         var userId = int.Parse(User.FindFirst("id")!.Value);
 

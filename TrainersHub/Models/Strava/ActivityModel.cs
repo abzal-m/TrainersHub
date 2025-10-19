@@ -4,6 +4,9 @@ namespace TrainersHub.Models.Strava;
 
 public class ActivityModel
 {
+    
+    [JsonPropertyName("name")] public string Name { get; set; }
+    
     [JsonPropertyName("athlete")]
     public Athlete Athlete { get; set; }
     
