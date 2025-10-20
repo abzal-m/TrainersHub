@@ -12,6 +12,7 @@ using TrainersHub.Models.TrainingModels;
 public class AthleteController : ControllerBase
 {
     private readonly AppDbContext _context;
+
     public AthleteController(AppDbContext context)
     {
         _context = context;
@@ -20,12 +21,11 @@ public class AthleteController : ControllerBase
     [HttpPost("UploadResult")]
     public async Task<IActionResult> UploadResult([FromBody] TrainingResultDto dto)
     {
-        
         var athleteIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (athleteIdClaim == null) return Unauthorized();
 
         int athleteId = int.Parse(athleteIdClaim);
-        
+
         var training = await _context.Trainings.FindAsync(dto.TrainingId);
         if (training == null) return NotFound("Training not found");
 
@@ -40,8 +40,15 @@ public class AthleteController : ControllerBase
             AvgCadence = dto.AvgCadence,
             CreatedAt = DateTime.UtcNow
         };
-
+        var updateResult = await _context.Trainings.FirstOrDefaultAsync(x => x.Id == dto.TrainingId);
+        if (updateResult != null)
+        {
+            updateResult.IsDone = true;
+            _context.Trainings.Update(updateResult);
+        }
+        
         _context.TrainingResults.Add(result);
+        
         await _context.SaveChangesAsync();
 
         return Ok(new { result.Id, result.Title });
@@ -54,15 +61,44 @@ public class AthleteController : ControllerBase
         if (athleteIdClaim == null) return Unauthorized();
 
         int athleteId = int.Parse(athleteIdClaim);
-        
+
         var results = await _context.TrainingResults
             .Where(r => r.AthleteId == athleteId)
             .ToListAsync();
 
         return Ok(results);
     }
+
+    [HttpGet("ShortTrainingsForCalendar")]
+    public async Task<IActionResult> ShortTrainingsForCalendar()
+    {
+        var athleteIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (athleteIdClaim == null) return Unauthorized();
+
+        int athleteId = int.Parse(athleteIdClaim);
+        
+        var trainings = await _context.Trainings
+            .Include(t => t.Trainer)
+            .Include(t => t.Segments)
+            .Where(t => t.AthleteId == athleteId).Select(t => new ShortTrainingsForCalendarDto
+            {
+                TrainingId = t.Id,
+                Title = t.Title,
+                TrainingDay = t.TrainingDay,
+                IsDone = t.IsDone,
+            })
+            .ToListAsync();
+
+        if (trainings.Count == 0)
+        {
+            return new EmptyResult();
+        }
+        
+        return Ok(trainings);
+    }
+
     [HttpGet("Trainings")]
-    public async Task<IActionResult> GetMyTrainings()
+    public async Task<IActionResult> Trainings()
     {
         // достаём id атлета из токена
         var athleteIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -70,7 +106,7 @@ public class AthleteController : ControllerBase
 
         int athleteId = int.Parse(athleteIdClaim);
 
-        var trainings = _context.Trainings
+        var trainings = await _context.Trainings
             .Include(t => t.Trainer)
             .Include(t => t.Segments)
             .Where(t => t.AthleteId == athleteId).Select(t => new TrainingViewDto
@@ -80,6 +116,7 @@ public class AthleteController : ControllerBase
                 TrainerName = t.Trainer.Username,
                 TrainingDay = t.TrainingDay,
                 Description = t.Description,
+                IsDone = t.IsDone,
                 Segments = t.Segments.Select(s => new TrainingSegmentDto
                 {
                     Order = s.Id,
@@ -89,19 +126,19 @@ public class AthleteController : ControllerBase
                     DurationMinutes = s.DurationMinutes
                 }).ToList()
             })
-            .ToList();
-        
+            .ToListAsync();
+
         if (trainings.Count == 0)
         {
             return new EmptyResult();
         }
 
         var response = new TrainingResponseModel();
-        response.TodayTraining = trainings.FirstOrDefault(x => x.TrainingDay.Date == DateTime.Now.Date) ?? new TrainingViewDto();
+        response.TodayTraining = trainings.FirstOrDefault(x => x.TrainingDay.Date == DateTime.Now.Date) ??
+                                 new TrainingViewDto();
         response.FutureTraining = trainings.Where(x => x.TrainingDay.Date > DateTime.Now.Date);
-        
 
-        return Ok(new { response.TodayTraining, response.FutureTraining});
+
+        return Ok(new { response.TodayTraining, response.FutureTraining });
     }
-    
 }
