@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<TrainerAthlete> TrainerAthletes { get; set; }
     public DbSet<Training> Trainings { get; set; }
     public DbSet<TrainingSegment> TrainingSegments { get; set; }
     public DbSet<TrainingResult> TrainingResults { get; set; }
@@ -23,6 +24,21 @@ public class AppDbContext : DbContext
         // ===== Users =====
         modelBuilder.Entity<User>()
             .HasKey(u => u.Id);
+        
+        modelBuilder.Entity<TrainerAthlete>()
+            .HasKey(u => u.Id);
+        
+        modelBuilder.Entity<TrainerAthlete>()
+            .HasOne(t => t.Trainer)
+            .WithMany(u => u.Athletes) // у тренера много атлетов
+            .HasForeignKey(t => t.TrainerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<TrainerAthlete>()
+            .HasOne(t => t.Athlete)
+            .WithOne(u => u.TrainerLink) // у атлета один тренер
+            .HasForeignKey<TrainerAthlete>(t => t.AthleteId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // ===== RefreshTokens =====
         modelBuilder.Entity<RefreshToken>()

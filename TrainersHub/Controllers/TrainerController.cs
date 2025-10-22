@@ -78,4 +78,22 @@ public class TrainerController : ControllerBase
 
         return Ok(trainings);
     }
+
+    [AllowAnonymous]
+    [HttpGet("MyAthletes/{trainerId}")]
+    public async Task<IActionResult> MyAthletes(int trainerId)
+    {
+        var athletes = await _context.TrainerAthletes
+            .Include(t => t.Athlete)
+            .Where(t => t.TrainerId == trainerId)
+            .Select(t => new
+            {
+                t.AthleteId,
+                t.Athlete.Username,
+                t.Athlete.Email
+            })
+            .ToListAsync();
+
+        return Ok(athletes);
+    }
 }

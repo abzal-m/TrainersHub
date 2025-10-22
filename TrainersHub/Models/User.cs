@@ -15,6 +15,11 @@ public class User
     public ICollection<Training> TrainingsAsTrainer { get; set; } = new List<Training>();
     public ICollection<Training> TrainingsAsAthlete { get; set; } = new List<Training>();
     public ICollection<StravaToken> StravaTokens { get; set; } = new List<StravaToken>();
+    
+    public ICollection<TrainerAthlete> Athletes { get; set; } = new List<TrainerAthlete>();
+
+    // 👇 Навигация: если это атлет — у него может быть один тренер
+    public TrainerAthlete TrainerLink { get; set; }
 }
 
 
