@@ -87,7 +87,7 @@ public class AccountController : ControllerBase
             Expires = DateTime.UtcNow.AddDays(_jwtOptions.RefreshTokenExpireDays)
         });
 
-        return Ok(new { accessToken });
+        return Ok(new { accessToken, user.Role });
     }
 
     // ====== Обновление токена ======
@@ -150,12 +150,14 @@ public class AccountController : ControllerBase
     // ====== Защищённый эндпоинт ======
     [Authorize]
     [HttpGet("isAuthenticated")]
-    public IActionResult IsAuthenticated()
+    public async Task<IActionResult> IsAuthenticated()
     {
         var user = User.Identity?.IsAuthenticated;
+        if (user == null)
+            return Unauthorized();
         if (user.HasValue && user.Value)
         {
-            return Ok(new {Name= User.Identity?.Name});
+            return Ok(new {Name= User.Identity?.Name, Role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value});
         }
         return Unauthorized();
     }

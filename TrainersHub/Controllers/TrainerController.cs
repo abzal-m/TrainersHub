@@ -78,11 +78,43 @@ public class TrainerController : ControllerBase
 
         return Ok(trainings);
     }
-
+    
     [AllowAnonymous]
-    [HttpGet("MyAthletes/{trainerId}")]
-    public async Task<IActionResult> MyAthletes(int trainerId)
+    [HttpGet("GetAllAthleteTrainings")]
+    public async Task<IActionResult> GetAllAthleteTrainings()
     {
+        var trainerId = int.Parse(User.FindFirst("id")!.Value);
+        var trainings = await _context.Trainings
+            .Include(t => t.Segments)
+            .Include(t => t.Trainer)
+            .Where(t => t.TrainerId == trainerId)
+            .Select(t => new TrainingViewDto
+            {
+                TrainingId = t.Id,
+                Title = t.Title,
+                TrainerName = t.Trainer.Username,
+                AthleteName = t.Athlete.Username,
+                Description = t.Description,
+                TrainingDay = t.TrainingDay,
+                Segments = t.Segments.Select(s => new TrainingSegmentDto
+                {
+                    Order = s.Id,
+                    TargetHeartRate = s.TargetHeartRate,
+                    TargetCadence = s.TargetCadence,
+                    DistanceKm = s.DistanceKm,
+                    DurationMinutes = s.DurationMinutes
+                }).ToList()
+            })
+            .ToListAsync();
+        var response = trainings.Where(x => x.TrainingDay.Date == DateTime.Now.Date);
+        return Ok(response);
+    }
+
+    
+    [HttpGet("MyAthletes")]
+    public async Task<IActionResult> MyAthletes()
+    {
+        var trainerId = int.Parse(User.FindFirst("id")!.Value);
         var athletes = await _context.TrainerAthletes
             .Include(t => t.Athlete)
             .Where(t => t.TrainerId == trainerId)
@@ -95,5 +127,25 @@ public class TrainerController : ControllerBase
             .ToListAsync();
 
         return Ok(athletes);
+    }
+    [AllowAnonymous]
+    [HttpGet("MyAthletesResults")]
+    public async Task<IActionResult> MyAthletesResults()
+    {
+        var trainerId = int.Parse(User.FindFirst("id")!.Value);
+        var results = await _context.TrainingResults
+            .Include(t => t.Athlete)
+            .Where(t => t.TrainerId == trainerId)
+            .Select(t => new
+            {
+                t.Athlete.Username,
+                t.Title,
+                t.DurationMinutes,
+                t.ElevationGain,
+                t.AvgHeartRate,
+                t.AvgCadence,
+                t.CreatedAt
+            }).ToListAsync();
+        return Ok(results);
     }
 }

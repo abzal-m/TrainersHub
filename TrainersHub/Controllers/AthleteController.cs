@@ -27,11 +27,13 @@ public class AthleteController : ControllerBase
         int athleteId = int.Parse(athleteIdClaim);
 
         var training = await _context.Trainings.FindAsync(dto.TrainingId);
+        var trainerId = training.TrainerId;
         if (training == null) return NotFound("Training not found");
 
         var result = new TrainingResult
         {
             TrainingId = dto.TrainingId,
+            TrainerId = trainerId,
             AthleteId = athleteId,
             Title = dto.Title,
             DurationMinutes = dto.DurationMinutes,

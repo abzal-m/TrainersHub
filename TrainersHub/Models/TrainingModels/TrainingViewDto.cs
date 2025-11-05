@@ -8,5 +8,6 @@ public class TrainingViewDto
     public bool IsDone  { get; set; }
     public DateTime TrainingDay { get; set; } = DateTime.Today;
     public string TrainerName { get; set; } = string.Empty;
+    public string AthleteName { get; set; } = string.Empty;
     public List<TrainingSegmentDto> Segments { get; set; } = new();
 }

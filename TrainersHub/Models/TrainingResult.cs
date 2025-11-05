@@ -13,4 +13,5 @@ public class TrainingResult
     public int AvgHeartRate { get; set; }
     public int AvgCadence { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public int TrainerId { get; set; }
 }
