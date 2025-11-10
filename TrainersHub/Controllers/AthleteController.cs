@@ -40,7 +40,10 @@ public class AthleteController : ControllerBase
             ElevationGain = dto.ElevationGain,
             AvgHeartRate = dto.AvgHeartRate,
             AvgCadence = dto.AvgCadence,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Rpe = dto.Rpe,
+            Wellbeing = dto.Wellbeing,
+            AthleteNotion = dto.AthleteNotion
         };
         var updateResult = await _context.Trainings.FirstOrDefaultAsync(x => x.Id == dto.TrainingId);
         if (updateResult != null)

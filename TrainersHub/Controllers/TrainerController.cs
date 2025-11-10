@@ -138,12 +138,16 @@ public class TrainerController : ControllerBase
             .Where(t => t.TrainerId == trainerId)
             .Select(t => new
             {
+                t.TrainingId,
                 t.Athlete.Username,
                 t.Title,
                 t.DurationMinutes,
                 t.ElevationGain,
                 t.AvgHeartRate,
                 t.AvgCadence,
+                t.Rpe,
+                t.AthleteNotion,
+                t.Wellbeing,
                 t.CreatedAt
             }).ToListAsync();
         return Ok(results);

@@ -12,6 +12,10 @@ public class TrainingResult
     public int ElevationGain { get; set; }
     public int AvgHeartRate { get; set; }
     public int AvgCadence { get; set; }
+    
+    public int Rpe { get; set; }
+    public string Wellbeing { get; set; } = string.Empty;
+    public string AthleteNotion { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int TrainerId { get; set; }
 }
