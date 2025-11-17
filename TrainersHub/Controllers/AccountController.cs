@@ -2,13 +2,13 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using JwtAuthExample.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using TrainersHub.Data;
 using TrainersHub.Models;
 using TrainersHub.Models.Auth;
 

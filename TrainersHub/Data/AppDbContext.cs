@@ -1,11 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TrainersHub.Models;
 using TrainersHub.Models.Auth;
 using TrainersHub.Models.Strava;
+using DataProtectionKey = Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey;
 
-namespace JwtAuthExample.Data;
+namespace TrainersHub.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : DbContext, IDataProtectionKeyContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -16,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<TrainingResult> TrainingResults { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<StravaToken> StravaTokens { get; set; }
+    public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

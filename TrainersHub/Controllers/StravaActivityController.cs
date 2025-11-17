@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
-using JwtAuthExample.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
+using TrainersHub.Data;
 using TrainersHub.Models;
 using TrainersHub.Models.Strava;
 using TrainersHub.Services;
